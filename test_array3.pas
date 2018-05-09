@@ -1,0 +1,17 @@
+ARRAY
+  A[5];
+
+PROCEDURE ONE;
+BEGIN
+  A[THREAD] := THREAD;
+END;
+
+BEGIN
+  COBEGIN
+    CALL ONE;
+    CALL ONE;
+    CALL ONE;
+    CALL ONE;
+  COEND;
+  WRITELN(A[0], A[1], A[2], A[3], A[4]);
+END.

@@ -1,0 +1,18 @@
+VAR A, B;
+
+PROCEDURE ONE;
+VAR X;
+BEGIN
+  X := THREAD;
+  WRITELN(A, B, X);
+END;
+
+BEGIN
+  COBEGIN
+    A := THREAD;
+    CALL ONE;
+    CALL ONE;
+    B := A + THREAD;
+  COEND;
+  WRITELN(A, B);
+END;

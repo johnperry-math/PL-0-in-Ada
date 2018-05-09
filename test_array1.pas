@@ -1,0 +1,8 @@
+ARRAY
+  A[5], B[4];
+
+ARRAY
+  C;
+
+BEGIN
+END.

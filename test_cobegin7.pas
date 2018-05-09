@@ -1,0 +1,33 @@
+VAR A, B, C, D, E;
+
+PROCEDURE TWO;
+VAR A;
+BEGIN
+  C := THREAD;
+  A := C;
+END;
+
+PROCEDURE ONE;
+VAR X;
+PROCEDURE THREE;
+VAR Y;
+BEGIN
+  X := THREAD;
+END;
+BEGIN
+  B := THREAD;
+  COBEGIN
+    CALL TWO;
+    CALL THREE;
+  COEND;
+  D := X;
+END;
+
+BEGIN
+  A := THREAD;
+  COBEGIN
+    CALL ONE;
+    E := THREAD;
+  COEND;
+  WRITELN(A, B, C, D, E);
+END;

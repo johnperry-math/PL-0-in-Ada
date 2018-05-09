@@ -1,0 +1,6 @@
+VAR A;
+
+BEGIN
+  A := 2;
+  WRITELN(A)
+END.
