@@ -1,7 +1,0 @@
-project Compiler is
-
-package Compiler is
-
-end Compiler;
-
-end Compiler;

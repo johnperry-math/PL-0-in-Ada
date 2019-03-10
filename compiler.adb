@@ -81,48 +81,55 @@ type Errors is (
   TOO_MANY_THREADS,
   ARRAY_EXPECTS_SIZE,
   ARRAY_EXPECTS_INDEX,
-  ARRAY_DECLARATION_REQUIRES_BRACKETS
+  ARRAY_REQUIRES_BRACKETS
 );
 
--- String representation of error codes.
--- The strings must appear in correct order when compared to the interface.
--- If you add errors, add the string IN THE CORRECT PLACE!
-Error_Messages: array(Errors) of Bounded_String := (
-  To_Bounded_String("Semicolon Expected"),
-  To_Bounded_String("Identifier Expected"),
-  To_Bounded_String("Unknown Identifier"),
-  To_Bounded_String("Assignment operator expected"),
-  To_Bounded_String("Assignment to PROCEDURE not allowed"),
-  To_Bounded_String("Can only call a procedure"),
-  To_Bounded_String("END symbol Expected"),
-  To_Bounded_String("DO symbol Expected"),
-  To_Bounded_String("THEN symbol Expected"),
-  To_Bounded_String("Variable or Expression Expected"),
-  To_Bounded_String("RIGHT Parenthesis Expected"),
-  To_Bounded_String("LEFT Parenthesis Expected"),
-  To_Bounded_String("Program size is too large..."),
-  To_Bounded_String("A number was Expected"),
-  To_Bounded_String("Relational operator expected"),
-  To_Bounded_String("number or ident expected"),
-  To_Bounded_String("Procedure not accepted here"),
-  To_Bounded_String("Premature end of program"),
-  To_Bounded_String("Assignment not allowed here"),
-  To_Bounded_String("Internal error: bad symbol encountered"),
-  To_Bounded_String("Internal error: bad object kind encountered"),
-  To_Bounded_String("Unrecognized punctuation"),
-  To_Bounded_String("Unexpected end of file"),
-  To_Bounded_String("UNTIL symbol expected"),
-  To_Bounded_String("TO or DOWNTO symbol expected"),
-  To_Bounded_String("OF symbol expected"),
-  To_Bounded_String("Colon expected"),
-  To_Bounded_String("Cases must be constants"),
-  To_Bounded_String("For loops require a declared variable"),
-  To_Bounded_String("Too many threads open already, cannot start a new one"),
-  To_Bounded_String("Must specify a size for an array"),
-  To_Bounded_String("Can only access arrays through indices"),
-  To_Bounded_String(
-      "Specify array size with a number in brackets [...] after name"
-  )
+-- mapping errors to strings without if statements!
+error_strings: array(Errors) of Bounded_String := (
+  SEMICOLON                => To_Bounded_String("Semicolon Expected"),
+  IDENT                    => To_Bounded_String("Identifier Expected"),
+  UNKNOWN                  => To_Bounded_String("Unknown Identifier"),
+  ASSIGN                   => To_Bounded_String("Assignment operator expected"),
+  ASSIGN_PROC              =>
+      To_Bounded_String("Assignment to PROCEDURE not allowed"),
+  CALL_PROC                => To_Bounded_String("Can only call a procedure"),
+  END_SYM                  => To_Bounded_String("END symbol Expected"),
+  DO_SYM                   => To_Bounded_String("DO symbol Expected"),
+  THEN_SYM                 => To_Bounded_String("THEN symbol Expected"),
+  VARIABLE                 =>
+      To_Bounded_String("Variable or Expression Expected"),
+  RPAREN                   => To_Bounded_String("RIGHT Parenthesis Expected"),
+  LPAREN                   => To_Bounded_String("LEFT Parenthesis Expected"),
+  PROG_SIZE                => To_Bounded_String("Program size is too large..."),
+  NUMBER_EXPECTED          => To_Bounded_String("A number was Expected"),
+  REL                      => To_Bounded_String("Relational operator expected"),
+  NUMBER_IDENT             => To_Bounded_String("number or ident expected"),
+  NOPROCEDURE              => To_Bounded_String("Procedure not accepted here"),
+  END_PROG                 => To_Bounded_String("Premature end of program"),
+  IS_PROCEDURE             => To_Bounded_String("Assignment not allowed here"),
+  BAD_SYMBOL               =>
+      To_Bounded_String("Internal error: bad symbol encountered"),
+  BAD_KIND                 =>
+      To_Bounded_String("Internal error: bad object kind encountered"),
+  UNRECOGNIZED_PUNCTUATION => To_Bounded_String("Unrecognized punctuation"),
+  END_OF_FILE              => To_Bounded_String("Unexpected end of file"),
+  EXPECT_UNTIL             => To_Bounded_String("UNTIL symbol expected"),
+  TO_OR_DOWNTO             => To_Bounded_String("TO or DOWNTO symbol expected"),
+  EXPECT_OF                => To_Bounded_String("OF symbol expected"),
+  COLON                    => To_Bounded_String("Colon expected"),
+  CASE_NEEDS_CONSTANT      => To_Bounded_String("Cases must be constants"),
+  FOR_NEEDS_VARIABLE       =>
+      To_Bounded_String("For loops require a declared variable"),
+  TOO_MANY_THREADS         =>
+      To_Bounded_String("Too many threads open already cannot start a new one"),
+  ARRAY_EXPECTS_SIZE       =>
+      To_Bounded_String("Must specify a size for an array"),
+  ARRAY_EXPECTS_INDEX      =>
+      To_Bounded_String("Can only access arrays through indices"),
+  ARRAY_REQUIRES_BRACKETS  =>
+      To_Bounded_String(
+          "Specify array size with a number in brackets [...] after name"
+      )
 );
 
 -- @summary raises an informative exception
@@ -133,7 +140,8 @@ procedure Error(num: Errors) is
   Compile_Error: exception;
 begin
   New_Line(1);
-  raise Compile_Error with To_String(error_messages(num));
+  -- raise Compile_Error with To_String(error_map(num));
+  raise Compile_Error with To_String(error_strings(num));
 end Error;
 
 ----
@@ -200,15 +208,22 @@ type Symbol is (
 -- helps avoid if statements when processing OPR 0,?
 subtype Relation_Symbol is Symbol range EQL..LSEQL;
 -- these go with OPR 0,?
-relation_operands: array(Relation_Symbol) of Integer := (8,  9, 10, 11, 12, 13);
+relation_operands: array(Relation_Symbol) of Integer := (
+  EQL    =>  8,
+  NOTEQL =>  9,
+  LSTHEN => 10,
+  GREQL  => 11,
+  GRTHEN => 12,
+  LSEQL  => 13
+);
 -- comment strings for OPR 0,?
 relation_comments: array(Relation_Symbol) of String(1..3) := (
-  "=?=",
-  "=/=",
-  "<? ",
-  ">=?",
-  ">? ",
-  "<=?"
+  EQL    => "=?=",
+  NOTEQL => "=/=",
+  LSTHEN => "<? ",
+  GREQL  => ">=?",
+  GRTHEN => ">? ",
+  LSEQL  => "<=?"
 );
 
 -- @summary used to identify the keyword from a string
@@ -224,70 +239,6 @@ use Keyword_From_String;
 keyword_string_map: Map;
 -- mapping punctuation to symbols without if statements!
 punctuation_map: Map;
-
--- Ada has some nice ways to initialize some things without loops
--- but I haven't yet figured out how to do that for a Map (if possible)
--- flag as to whether to initialize the keyword map
-initialized_keyword_map: Boolean := false;
-
--- @summary initializes keyword_string_map and punctuation_map;
--- @description this needs to be run at least once, but only once
-procedure Initialize_Keyword_Map is
-begin
-
-  Include(keyword_string_map, To_Bounded_String("AND"),       ANDSYM    );
-  Include(keyword_string_map, To_Bounded_String("ARRAY"),     ARRAYSYM  );
-  Include(keyword_string_map, To_Bounded_String("BEGIN"),     BEGINSYM  );
-  Include(keyword_string_map, To_Bounded_String("CALL"),      CALL      );
-  Include(keyword_string_map, To_Bounded_String("CASE"),      CASESYM   );
-  Include(keyword_string_map, To_Bounded_String("CEND"),      CENDSYM   );
-  Include(keyword_string_map, To_Bounded_String("COBEGIN"),   COBEGINSYM);
-  Include(keyword_string_map, To_Bounded_String("COEND"),     COENDSYM  );
-  Include(keyword_string_map, To_Bounded_String("CONST"),     CONSTSYM  );
-  Include(keyword_string_map, To_Bounded_String("DO"),        DOSYM     );
-  Include(keyword_string_map, To_Bounded_String("DOWNTO"),    DOWNTOSYM );
-  Include(keyword_string_map, To_Bounded_String("ELSE"),      ELSESYM   );
-  Include(keyword_string_map, To_Bounded_String("END"),       ENDSYM    );
-  Include(keyword_string_map, To_Bounded_String("FOR"),       FORSYM    );
-  Include(keyword_string_map, To_Bounded_String("IF"),        IFSYM     );
-  Include(keyword_string_map, To_Bounded_String("NOT"),       NOTSYM    );
-  Include(keyword_string_map, To_Bounded_String("ODD"),       ODDSYM    );
-  Include(keyword_string_map, To_Bounded_String("OF"),        OFSYM     );
-  Include(keyword_string_map, To_Bounded_String("OR"),        ORSYM     );
-  Include(keyword_string_map, To_Bounded_String("PROCEDURE"), PROCSYM   );
-  Include(keyword_string_map, To_Bounded_String("REPEAT"),    REPEATSYM );
-  Include(keyword_string_map, To_Bounded_String("THEN"),      THENSYM   );
-  Include(keyword_string_map, To_Bounded_String("THREAD"),    THREADSYM );
-  Include(keyword_string_map, To_Bounded_String("TO"),        TOSYM     );
-  Include(keyword_string_map, To_Bounded_String("UNTIL"),     UNTILSYM  );
-  Include(keyword_string_map, To_Bounded_String("VAR"),       VARSYM    );
-  Include(keyword_string_map, To_Bounded_String("WHILE"),     WHILESYM  );
-  Include(keyword_string_map, To_Bounded_String("WRITE"),     WRITESYM  );
-  Include(keyword_string_map, To_Bounded_String("WRITELN"),   WRITELNSYM);
-
-  Include(punctuation_map, To_Bounded_String(":="), ASSIGN    );
-  Include(punctuation_map, To_Bounded_String(":" ), COLON     );
-  Include(punctuation_map, To_Bounded_String("," ), COMMA     );
-  Include(punctuation_map, To_Bounded_String("." ), PERIOD    );
-  Include(punctuation_map, To_Bounded_String("/" ), DIV       );
-  Include(punctuation_map, To_Bounded_String("-" ), MINUS     );
-  Include(punctuation_map, To_Bounded_String("*" ), MULT      );
-  Include(punctuation_map, To_Bounded_String("+" ), PLUS      );
-  Include(punctuation_map, To_Bounded_String("=" ), EQL       );
-  Include(punctuation_map, To_Bounded_String("<>"), NOTEQL    );
-  Include(punctuation_map, To_Bounded_String(">="), GREQL     );
-  Include(punctuation_map, To_Bounded_String(">" ), GRTHEN    );
-  Include(punctuation_map, To_Bounded_String("(" ), LPAREN    );
-  Include(punctuation_map, To_Bounded_String("<="), LSEQL     );
-  Include(punctuation_map, To_Bounded_String("<" ), LSTHEN    );
-  Include(punctuation_map, To_Bounded_String(")" ), RPAREN    );
-  Include(punctuation_map, To_Bounded_String(";" ), SEMICOLON );
-  Include(punctuation_map, To_Bounded_String("[" ), LBRACKET  );
-  Include(punctuation_map, To_Bounded_String("]" ), RBRACKET  );
-
-  initialized_keyword_map := true;
-
-end Initialize_Keyword_Map;
 
 ----
 -- Identifiers
@@ -342,10 +293,14 @@ procedure Get_Char(ch: out Character) is
 begin
   if char_pos > linelength then
     if End_Of_File then Error(END_OF_FILE); end if;
-    read_line := To_Bounded_String(To_Upper(Get_Line));
-    Append(read_line, ' ');
-    linelength := Length(read_line);
-    Put(To_String(read_line));
+    loop
+      read_line := To_Bounded_String(To_Upper(Get_Line));
+      linelength := Length(read_line);
+      if linelength = 0 then New_Line(1);
+      else Put(To_String(read_line));
+      end if;
+      exit when linelength > 0;
+    end loop;
     New_Line(1);
     char_pos := 1; -- reset character count
   end if;
@@ -1170,12 +1125,12 @@ begin
         Get_Symbol(sym);
         if sym /= IDENT then Error(IDENT); end if;
         Get_Symbol(sym);
-        if sym /= LBRACKET then Error(ARRAY_DECLARATION_REQUIRES_BRACKETS); end if;
+        if sym /= LBRACKET then Error(ARRAY_REQUIRES_BRACKETS); end if;
         Get_Symbol(sym);
         if sym /= NUM then Error(NUMBER_EXPECTED); end if;
         size := Table_Range(number);
         Get_Symbol(sym);
-        if sym /= RBRACKET then Error(ARRAY_DECLARATION_REQUIRES_BRACKETS); end if;
+        if sym /= RBRACKET then Error(ARRAY_REQUIRES_BRACKETS); end if;
         Enter(ARR, line, sym, varcount, level, table_index, size);
         exit when sym /= COMMA;
       end loop;
@@ -1206,7 +1161,6 @@ procedure Compile(code: out PCode_Table) is
   level: Integer := 0;
   table_index: Symbol_Table_Range := 0;
 begin
-  Initialize_Keyword_Map;
   Get_Symbol(sym);
   Block(code, sym, level, table_index);
   New_Line(1);
@@ -1693,5 +1647,154 @@ begin
   processors(first_thread).Start(codes, first_thread);
   Put("End PL/0 # "); Put(first_thread, 2); New_Line(1);
 end Interpret;
+
+begin
+
+  -- static initialization?
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("AND"),       ANDSYM    
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("ARRAY"),     ARRAYSYM  
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("BEGIN"),     BEGINSYM  
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("CALL"),      CALL      
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("CASE"),      CASESYM   
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("CEND"),      CENDSYM   
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("COBEGIN"),   COBEGINSYM
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("COEND"),     COENDSYM  
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("CONST"),     CONSTSYM  
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("DO"),        DOSYM     
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("DOWNTO"),    DOWNTOSYM 
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("ELSE"),      ELSESYM   
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("END"),       ENDSYM    
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("FOR"),       FORSYM    
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("IF"),        IFSYM     
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("NOT"),       NOTSYM    
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("ODD"),       ODDSYM    
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("OF"),        OFSYM     
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("OR"),        ORSYM     
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("PROCEDURE"), PROCSYM   
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("REPEAT"),    REPEATSYM 
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("THEN"),      THENSYM   
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("THREAD"),    THREADSYM 
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("TO"),        TOSYM     
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("UNTIL"),     UNTILSYM  
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("VAR"),       VARSYM    
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("WHILE"),     WHILESYM  
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("WRITE"),     WRITESYM  
+  );
+  Keyword_From_String.Include(
+      keyword_string_map, To_Bounded_String("WRITELN"),   WRITELNSYM
+  );
+
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String(":="), ASSIGN    
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String(":" ), COLON     
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("," ), COMMA     
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("." ), PERIOD    
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("/" ), DIV       
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("-" ), MINUS     
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("*" ), MULT      
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("+" ), PLUS      
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("=" ), EQL       
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("<>"), NOTEQL    
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String(">="), GREQL     
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String(">" ), GRTHEN    
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("(" ), LPAREN    
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("<="), LSEQL     
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("<" ), LSTHEN    
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String(")" ), RPAREN    
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String(";" ), SEMICOLON 
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("[" ), LBRACKET  
+  );
+  Keyword_From_String.Include(
+      punctuation_map, To_Bounded_String("]" ), RBRACKET  
+  );
 
 end Compiler;
